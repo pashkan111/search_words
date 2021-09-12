@@ -1,12 +1,108 @@
 <!DOCTYPE html>
 <html lang="en">
 
-<head>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-+0n0xVW2eSR5OomGNYDnhzAbDsOXxcvSN1TPprVMTNDbiYZCxYbOOl7+AMvyTG2x" crossorigin="anonymous">
 <body>
-    <form enctype="multipart/form-data" method="post", action="/upload-file">
-        <p><input type="file" name="file">
-        <input type="submit" value="Отправить"></p>
-    </form> 
+    <ul class="nav text-light bg-secondary">
+        <li class="nav-item">
+          <a class="nav-link active" href="/">Главная</a>
+        </li>
+      </ul>
+    <header>
+        <h3 style="text-align: center; margin-bottom: 20px;">Приложение для оценки важности слова в контексте документа</h3>
+    </header>
+    <div class="container">
+    <div class="row">
+        <div class="col-md-4">
+            <form enctype="multipart/form-data" method="post", action="/upload-file">
+                <p><input type="file" class="form-control-file" name="file", id="file"></p>
+                <p><input type="submit" class="btn btn-primary" value="Отправить"></p>
+                <p id="error" style="display: none; color: red;">Загрузите текстовый файл</p>
+            </form> 
+        </div>
+    </div>
+    <div id=table style="display: none;">
+        <table class="table">
+            <thead class="thead-dark">
+                <tr>
+                    <th scope="col"><abbr title="ID">ID</abbr></th>
+                    <th scope="col">Слово</th>
+                    <th scope="col">tf</th>
+                    <th scope="col">idf</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+</div>
 </body>
-</head>
+<script>
+    const form = document.querySelector('form')
+    const error = document.getElementById('error')
+
+    form.addEventListener("submit", (e) => {
+        e.preventDefault()
+        const file = document.getElementById('file').files[0]
+        if (!file){
+            error.style.display = 'block'
+            return;
+        } else {
+        error.style.display = 'none'
+        const reader = new FileReader();
+        reader.readAsText(file)
+        reader.onload = () => {
+            if (reader.result.length<1){
+                error.style.display = 'block'
+                error.innerHTML = 'Документ пустой'
+                return;
+            } else{
+                error.style.display = 'none'
+            let data = JSON.stringify({
+                fileText: reader.result,
+            })
+            postData(url='http://127.1.1.1:8100/upload-file', data=data)
+            .then((data) => 
+              {
+                  console.log(data)
+                putDataIntoTable(JSON.parse(data))
+              });
+            }
+            }
+        }
+    });
+
+    function checkFile(text){
+        if (text.length<1){
+            return 'Документ пустой'
+        }
+
+    }
+
+    function putDataIntoTable(data){
+        const table = document.querySelector('table')
+        const div_table = document.getElementById('table')
+        div_table.style.display = 'block'
+        const keys = Object.keys(data)
+        keys.forEach((el, i) => {
+            const tr = document.createElement('tr')
+            tr.innerHTML = `<td>${i+1}</td> <td>${el}</td> <td>${data[el][0]}</td>  <td>${data[el][1]}</td>`;
+            table.appendChild(tr);
+        })
+    }
+
+    async function postData(url, data) {
+        const response = await fetch(url, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        referrerPolicy: 'no-referrer', 
+        body: JSON.stringify(data) 
+        });
+        return await response.json(); 
+    }
+</script>
 </html>
+
